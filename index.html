@@ -1,0 +1,1156 @@
+<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; connect-src 'self' https://text.pollinations.ai; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta http-equiv="x-dns-prefetch-control" content="off"><meta name="x-poe-datastore-behavior" content="disabled"><meta name="x-poe-allow-downloads" content="true"><script src="https://puc.poecdn.net/standard.25f6d5ebb7608dc2f276.js"></script>
+    <meta charset="utf-8">
+    <title>Music Mixer Pro</title>
+    <link rel="icon" type="image/x-icon" href="icon.png">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://puc.poecdn.net/disableWebRTC.9710cebe07429a9e8e06.js"></script><script src="https://puc.poecdn.net/tw.b9024aecac666455e183.js"></script><script src="https://puc.poecdn.net/deps.faccd16000d314dc16d5.js"></script><script src="https://puc.poecdn.net/exports.b0f0f482cdeb5302b0b9.js"></script><script src="https://puc.poecdn.net/renderer.75c73ae6b4235f62945a.js"></script><script>Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _react = require('react'); var _react2 = _interopRequireDefault(_react);
+var _lucidereact = require('lucide-react');
+
+const DJMixerPro = () => {
+  const [audioContext, setAudioContext] = _react.useState.call(void 0, null);
+  const [decks, setDecks] = _react.useState.call(void 0, [
+    { id: 1, name: 'Deck A', isPlaying: false, currentTime: 0, totalDuration: 0, music: null, volume: 75, gain: 100, spin: 0 },
+    { id: 2, name: 'Deck B', isPlaying: false, currentTime: 0, totalDuration: 0, music: null, volume: 75, gain: 100, spin: 0 }
+  ]);
+  const [jsonSheet, setJsonSheet] = _react.useState.call(void 0, '');
+  const [activeEffects, setActiveEffects] = _react.useState.call(void 0, {});
+  const [currentWaveform, setCurrentWaveform] = _react.useState.call(void 0, 'sine');
+  const [masterCrossfader, setMasterCrossfader] = _react.useState.call(void 0, 50);
+  const [aiPrompt, setAiPrompt] = _react.useState.call(void 0, '');
+  const [isGenerating, setIsGenerating] = _react.useState.call(void 0, false);
+  
+  const audioContextRef = _react.useRef.call(void 0, null);
+  const deckRefs = _react.useRef.call(void 0, {});
+  const effectsRef = _react.useRef.call(void 0, {});
+  const animationRef = _react.useRef.call(void 0, {});
+
+  // Note frequencies
+  const noteFrequencies = {
+    'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
+    'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00, 'G#': 415.30,
+    'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
+  };
+
+  // Example sheet music
+  const exampleSheets = {
+    simple: {
+      title: "Simple Melody",
+      tempo: 120,
+      key: "C",
+      tracks: [
+        {
+          name: "melody",
+          instrument: "sine",
+          volume: 0.7,
+          notes: [
+            {note: "C4", duration: 1, effects: ["none"]},
+            {note: "D4", duration: 1, effects: ["none"]},
+            {note: "E4", duration: 1, effects: ["none"]},
+            {note: "F4", duration: 1, effects: ["none"]},
+            {note: "G4", duration: 2, effects: ["reverb"]},
+            {note: "F4", duration: 1, effects: ["none"]},
+            {note: "E4", duration: 1, effects: ["none"]},
+            {note: "D4", duration: 1, effects: ["none"]},
+            {note: "C4", duration: 2, effects: ["reverb"]}
+          ]
+        }
+      ]
+    },
+    chord: {
+      title: "Chord Progression",
+      tempo: 100,
+      key: "Am",
+      tracks: [
+        {
+          name: "chords",
+          instrument: "square",
+          volume: 0.6,
+          notes: [
+            {chord: ["A3", "C4", "E4"], duration: 4, effects: ["none"]},
+            {chord: ["F3", "A3", "C4"], duration: 4, effects: ["none"]},
+            {chord: ["C3", "E3", "G3"], duration: 4, effects: ["filter"]},
+            {chord: ["G3", "B3", "D4"], duration: 4, effects: ["reverb"]}
+          ]
+        }
+      ]
+    },
+    beat: {
+      title: "Electronic Beat",
+      tempo: 128,
+      key: "C",
+      tracks: [
+        {
+          name: "kick",
+          instrument: "kick",
+          volume: 0.8,
+          notes: [
+            {note: "C2", duration: 1, effects: ["none"]},
+            {rest: true, duration: 1},
+            {note: "C2", duration: 1, effects: ["none"]},
+            {rest: true, duration: 1}
+          ]
+        },
+        {
+          name: "synth",
+          instrument: "sawtooth",
+          volume: 0.6,
+          notes: [
+            {note: "G3", duration: 0.5, effects: ["filter"]},
+            {note: "A3", duration: 0.5, effects: ["filter"]},
+            {note: "C4", duration: 1, effects: ["reverb"]},
+            {note: "G3", duration: 2, effects: ["delay"]}
+          ]
+        }
+      ]
+    },
+    house: {
+      title: "House Track",
+      tempo: 128,
+      key: "Em",
+      tracks: [
+        {
+          name: "bass",
+          instrument: "sawtooth",
+          volume: 0.8,
+          notes: [
+            {note: "E2", duration: 2, effects: ["filter"]},
+            {note: "G2", duration: 2, effects: ["filter"]},
+            {note: "B2", duration: 2, effects: ["filter"]},
+            {note: "D3", duration: 2, effects: ["filter"]}
+          ]
+        }
+      ]
+    },
+    ambient: {
+      title: "Ambient Pad",
+      tempo: 80,
+      key: "F",
+      tracks: [
+        {
+          name: "pad",
+          instrument: "triangle",
+          volume: 0.5,
+          notes: [
+            {chord: ["F3", "A3", "C4"], duration: 8, effects: ["reverb", "delay"]},
+            {chord: ["G3", "Bb3", "D4"], duration: 8, effects: ["reverb", "delay"]}
+          ]
+        }
+      ]
+    },
+    techno: {
+      title: "Techno Loop",
+      tempo: 140,
+      key: "Am",
+      tracks: [
+        {
+          name: "lead",
+          instrument: "square",
+          volume: 0.7,
+          notes: [
+            {note: "A4", duration: 0.25, effects: ["filter"]},
+            {note: "C5", duration: 0.25, effects: ["filter"]},
+            {note: "E5", duration: 0.5, effects: ["distortion"]},
+            {rest: true, duration: 1}
+          ]
+        }
+      ]
+    }
+  };
+
+  // Initialize Audio Context
+  const initAudio = _react.useCallback.call(void 0, async () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      setAudioContext(audioContextRef.current);
+      
+      // Initialize effects
+      effectsRef.current = {
+        reverb: await createReverbNode(audioContextRef.current),
+        delay: createDelayNode(audioContextRef.current),
+        filter: createFilterNode(audioContextRef.current),
+        distortion: createDistortionNode(audioContextRef.current)
+      };
+    }
+  }, []);
+
+  // Audio effect creators
+  const createReverbNode = async (ctx) => {
+    const convolver = ctx.createConvolver();
+    const impulseResponse = await createImpulseResponse(ctx);
+    convolver.buffer = impulseResponse;
+    return convolver;
+  };
+
+  const createImpulseResponse = async (ctx) => {
+    const length = ctx.sampleRate * 2;
+    const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+      }
+    }
+    return impulse;
+  };
+
+  const createDelayNode = (ctx) => {
+    const delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.3;
+    return delay;
+  };
+
+  const createFilterNode = (ctx) => {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 8000;
+    return filter;
+  };
+
+  const createDistortionNode = (ctx) => {
+    const distortion = ctx.createWaveShaper();
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    
+    for (let i = 0; i < samples; i++) {
+      const x = (i * 2) / samples - 1;
+      curve[i] = ((3 + 50) * x * 20 * deg) / (Math.PI + 50 * Math.abs(x));
+    }
+    distortion.curve = curve;
+    return distortion;
+  };
+
+  // AI Generation
+  const generateSheetMusic = async () => {
+    if (!aiPrompt.trim()) {
+      alert('Please enter a prompt for AI generation');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const enhancedPrompt = `Generate a JSON sheet music structure for a DJ mixing application. The request is: "${aiPrompt}". 
+
+Please respond with ONLY valid JSON in this exact format:
+{
+  "title": "Song Title",
+  "tempo": 120,
+  "key": "C",
+  "tracks": [
+    {
+      "name": "track_name",
+      "instrument": "sine|square|sawtooth|triangle|kick|snare",
+      "volume": 0.7,
+      "notes": [
+        {"note": "C4", "duration": 1, "effects": ["none|reverb|delay|filter"]},
+        {"chord": ["C4", "E4", "G4"], "duration": 2, "effects": ["reverb"]},
+        {"rest": true, "duration": 1}
+      ]
+    }
+  ]
+}
+
+Notes should use format like C4, D#4, etc. Duration is in beats. Effects can be: none, reverb, delay, filter. Instruments: sine, square, sawtooth, triangle for synths, kick/snare for drums. Create multiple tracks for richer music.`;
+
+      const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(enhancedPrompt)}`);
+      const textResponse = await response.text();
+
+      // Try to extract JSON from the response
+      let jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in AI response');
+      }
+
+      const generatedJson = JSON.parse(jsonMatch[0]);
+      setJsonSheet(JSON.stringify(generatedJson, null, 2));
+      
+    } catch (error) {
+      console.error('AI Generation Error:', error);
+      alert('Failed to generate sheet music. Please try again with a different prompt.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Utility functions
+  const getFrequency = (note, octave = 4) => {
+    const baseFreq = noteFrequencies[note];
+    if (!baseFreq) return 440;
+    return baseFreq * Math.pow(2, octave - 4);
+  };
+
+  const parseNote = (noteStr) => {
+    const match = noteStr.match(/([A-G][#b]?)(\d*)/);
+    if (!match) return { note: 'A', octave: 4 };
+    
+    const note = match[1];
+    const octave = match[2] ? parseInt(match[2]) : 4;
+    
+    return { note, octave };
+  };
+
+  const calculateDuration = (music) => {
+    let totalBeats = 0;
+    
+    if (music.tracks) {
+      music.tracks.forEach(track => {
+        if (track.notes) {
+          const trackBeats = track.notes.reduce((sum, note) => sum + (note.duration || 1), 0);
+          totalBeats = Math.max(totalBeats, trackBeats);
+        }
+      });
+    } else if (music.notes) {
+      totalBeats = music.notes.reduce((sum, note) => sum + (note.duration || 1), 0);
+    }
+    
+    const bpm = music.tempo || 120;
+    return (totalBeats * 60) / bpm;
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Generate waveform visualization with animation
+  const generateWaveform = (deck) => {
+    const bars = [];
+    const barCount = 32;
+    
+    for (let i = 0; i < barCount; i++) {
+      // Create more realistic waveform based on deck state
+      let baseHeight = 12;
+      let amplitude = 25;
+      
+      if (deck.music && deck.isPlaying) {
+        // Simulate bass frequencies for lower bars, higher frequencies for upper bars
+        const freq = Math.sin((i / barCount) * Math.PI * 2 + Date.now() * 0.01) * 0.5 + 0.5;
+        const gain = (deck.gain / 100) * (deck.volume / 100);
+        amplitude = 15 + (freq * gain * 35);
+        
+        // Add some randomness for realistic look
+        amplitude += (Math.random() - 0.5) * 8;
+      }
+      
+      const height = Math.max(baseHeight, Math.min(amplitude, 50));
+      const progress = deck.totalDuration ? (deck.currentTime / deck.totalDuration) : 0;
+      const isActive = i / barCount <= progress;
+      
+      bars.push(
+        _react2.default.createElement('div', {
+          key: i,
+          className: `w-0.5 transition-all duration-100 rounded-sm ${
+            deck.isPlaying && isActive
+              ? 'bg-gradient-to-t from-emerald-500 via-cyan-400 to-blue-400 shadow-sm shadow-emerald-400/30' 
+              : deck.music && isActive
+              ? 'bg-gradient-to-t from-blue-500 via-purple-400 to-indigo-400'
+              : 'bg-gradient-to-t from-gray-700 to-gray-500'
+          }`,
+          style: { 
+            height: `${height}%`,
+            transform: deck.isPlaying ? `scaleY(${0.85 + Math.random() * 0.3})` : 'scaleY(1)'
+          },}
+        )
+      );
+    }
+    return bars;
+  };
+
+  // Animate waveforms for playing decks
+  _react.useEffect.call(void 0, () => {
+    const animateWaveforms = () => {
+      setDecks(prevDecks => [...prevDecks]); // Force re-render for animation
+      animationRef.current = requestAnimationFrame(animateWaveforms);
+    };
+
+    const hasPlayingDecks = decks.some(deck => deck.isPlaying);
+    if (hasPlayingDecks) {
+      animationRef.current = requestAnimationFrame(animateWaveforms);
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [decks.some(deck => deck.isPlaying)]);
+
+  // Calculate effective gain for each deck based on crossfader and individual gains
+  const calculateEffectiveGain = (deck) => {
+    const deckGain = deck.gain / 100;
+    const crossfaderGain = masterCrossfader / 100;
+    const volumeGain = deck.volume / 100;
+    
+    return deckGain * volumeGain;
+  };
+
+  // Calculate spin effect on frequency
+  const calculateSpinEffect = (originalFreq, spinValue) => {
+    const spinFactor = 1 + (spinValue / 100) * 0.5;
+    return originalFreq * spinFactor;
+  };
+
+  // Deck operations
+  const addDeck = () => {
+    const newId = Math.max(...decks.map(d => d.id)) + 1;
+    setDecks([...decks, {
+      id: newId,
+      name: `Deck ${String.fromCharCode(64 + newId)}`,
+      isPlaying: false,
+      currentTime: 0,
+      totalDuration: 0,
+      music: null,
+      volume: 75,
+      gain: 100,
+      spin: 0
+    }]);
+  };
+
+  const deleteDeck = (id) => {
+    if (decks.length > 1) {
+      setDecks(decks.filter(deck => deck.id !== id));
+    }
+  };
+
+  const updateDeckProperty = (deckId, property, value) => {
+    setDecks(decks.map(deck => 
+      deck.id === deckId ? { ...deck, [property]: value } : deck
+    ));
+  };
+
+  const applySheetToDeck = (deckId) => {
+    try {
+      const music = JSON.parse(jsonSheet);
+      const duration = calculateDuration(music);
+      
+      setDecks(decks.map(deck => 
+        deck.id === deckId 
+          ? { ...deck, music, totalDuration: duration, currentTime: 0 }
+          : deck
+      ));
+    } catch (error) {
+      alert('Invalid JSON format');
+    }
+  };
+
+  const playPauseDeck = async (deckId) => {
+    await initAudio();
+    
+    const deck = decks.find(d => d.id === deckId);
+    if (!deck || !deck.music) return;
+
+    if (deck.isPlaying) {
+      stopDeck(deckId);
+    } else {
+      playDeck(deckId);
+    }
+  };
+
+  const playDeck = (deckId) => {
+    setDecks(decks.map(deck => 
+      deck.id === deckId ? { ...deck, isPlaying: true } : deck
+    ));
+    
+    const deck = decks.find(d => d.id === deckId);
+    if (deck && deck.music) {
+      scheduleNotes(deck);
+    }
+  };
+
+  const stopDeck = (deckId) => {
+    setDecks(decks.map(deck => 
+      deck.id === deckId ? { ...deck, isPlaying: false, currentTime: 0 } : deck
+    ));
+  };
+
+  const cueDeck = (deckId) => {
+    setDecks(decks.map(deck => 
+      deck.id === deckId ? { ...deck, currentTime: 0 } : deck
+    ));
+  };
+
+  const scheduleNotes = (deck) => {
+    if (!audioContextRef.current) return;
+    
+    const music = deck.music;
+    const bpm = music.tempo || 120;
+    const beatDuration = 60 / bpm;
+    
+    if (music.tracks) {
+      music.tracks.forEach(track => {
+        scheduleTrackNotes(track, beatDuration, deck);
+      });
+    }
+  };
+
+  const scheduleTrackNotes = (track, beatDuration, deck) => {
+    let currentBeat = 0;
+    
+    if (track.notes) {
+      track.notes.forEach(noteData => {
+        const startTime = audioContextRef.current.currentTime + currentBeat * beatDuration;
+        const duration = (noteData.duration || 1) * beatDuration;
+        
+        if (noteData.rest) {
+          // Rest - do nothing
+        } else if (noteData.chord) {
+          noteData.chord.forEach(note => {
+            playNote(note, startTime, duration, track, deck);
+          });
+        } else if (noteData.note) {
+          playNote(noteData.note, startTime, duration, track, deck);
+        }
+        
+        currentBeat += noteData.duration || 1;
+      });
+    }
+  };
+
+  const playNote = (noteStr, startTime, duration, track, deck) => {
+    const { note, octave } = parseNote(noteStr);
+    const originalFrequency = getFrequency(note, octave);
+    
+    const frequency = calculateSpinEffect(originalFrequency, deck.spin);
+    
+    const oscillator = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
+    
+    oscillator.type = track.instrument === 'kick' || track.instrument === 'snare' ? 'sine' : 
+                     track.instrument || currentWaveform;
+    
+    const effectiveGain = calculateEffectiveGain(deck);
+    
+    if (track.instrument === 'kick') {
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.01, startTime + duration);
+      gainNode.gain.setValueAtTime((track.volume || 0.7) * effectiveGain, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    } else {
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime((track.volume || 0.5) * effectiveGain, startTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+    }
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  };
+
+  const stopAllDecks = () => {
+    setDecks(decks.map(deck => ({ ...deck, isPlaying: false, currentTime: 0 })));
+  };
+
+  const startAllDecks = () => {
+    decks.forEach(deck => {
+      if (deck.music) {
+        playDeck(deck.id);
+      }
+    });
+  };
+
+  const resetAllControls = () => {
+    setDecks(decks.map(deck => ({ ...deck, gain: 100, spin: 0 })));
+    setMasterCrossfader(50);
+  };
+
+  // Effect functions
+  const toggleEffect = (effectName) => {
+    setActiveEffects(prev => ({
+      ...prev,
+      [effectName]: !prev[effectName]
+    }));
+  };
+
+  const playQuickSound = (soundType) => {
+    if (!audioContextRef.current) return;
+    
+    const oscillator = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    switch(soundType) {
+      case 'bass':
+        oscillator.frequency.value = 60;
+        oscillator.type = 'sawtooth';
+        gainNode.gain.setValueAtTime(0.3, audioContextRef.current.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 1);
+        break;
+      case 'lead':
+        oscillator.frequency.value = 880;
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.2, audioContextRef.current.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.5);
+        break;
+      case 'chord':
+        oscillator.frequency.value = 440;
+        oscillator.type = 'triangle';
+        gainNode.gain.setValueAtTime(0.2, audioContextRef.current.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.3);
+        break;
+      case 'drum':
+        oscillator.frequency.value = 80;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.4, audioContextRef.current.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.2);
+        break;
+    }
+    
+    oscillator.start();
+    oscillator.stop(audioContextRef.current.currentTime + 2);
+  };
+
+  // File operations
+  const exportSheet = () => {
+    if (!jsonSheet) return;
+    
+    const blob = new Blob([jsonSheet], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sheet-music.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importSheet = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setJsonSheet(e.target.result);
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  const loadExample = (type) => {
+    setJsonSheet(JSON.stringify(exampleSheets[type], null, 2));
+  };
+
+  // Keyboard shortcuts
+  _react.useEffect.call(void 0, () => {
+    const handleKeyboard = (event) => {
+      const key = event.key.toLowerCase();
+      
+      switch(key) {
+        case 'q': toggleEffect('reverb'); break;
+        case 'w': toggleEffect('delay'); break;
+        case 'e': toggleEffect('filter'); break;
+        case 'r': toggleEffect('distortion'); break;
+        case '1': setCurrentWaveform('sine'); break;
+        case '2': setCurrentWaveform('square'); break;
+        case '3': setCurrentWaveform('sawtooth'); break;
+        case '4': setCurrentWaveform('triangle'); break;
+        case '5': playQuickSound('bass'); break;
+        case '6': playQuickSound('lead'); break;
+        case '7': playQuickSound('chord'); break;
+        case '8': playQuickSound('drum'); break;
+        case 'a':
+          setMasterCrossfader(prev => Math.max(0, prev - 5));
+          break;
+        case 'd':
+          setMasterCrossfader(prev => Math.min(100, prev + 5));
+          break;
+        case ' ':
+          event.preventDefault();
+          stopAllDecks();
+          break;
+        case 'x':
+          resetAllControls();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, []);
+
+  // Initialize with example
+  _react.useEffect.call(void 0, () => {
+    setJsonSheet(JSON.stringify(exampleSheets.simple, null, 2));
+  }, []);
+
+  return (
+    _react2.default.createElement('div', { className: "h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex flex-col"       ,}
+      /* Custom Scrollbar Styles */
+      , _react2.default.createElement('style', { jsx: true,}, `
+        /* Custom Scrollbar for Webkit browsers */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(45deg, #8b5cf6, #06b6d4);
+          border-radius: 4px;
+          box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(45deg, #7c3aed, #0891b2);
+          box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+        }
+        
+        /* Firefox scrollbar */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #8b5cf6 rgba(0, 0, 0, 0.3);
+        }
+      `)
+
+      /* Title Bar */
+      , _react2.default.createElement('div', { className: "h-16 bg-black/50 backdrop-blur-md border-b border-purple-500/30 flex items-center justify-between px-6"        ,}
+        , _react2.default.createElement('div', { className: "flex items-center space-x-3"  ,}
+          , _react2.default.createElement(_lucidereact.Music, { className: "w-8 h-8 text-purple-400"  ,} )
+          , _react2.default.createElement('h1', { className: "text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"      ,}, "DJ Mixer Pro - Synthesizer Edition"
+
+          )
+        )
+
+        , _react2.default.createElement('div', { className: "flex items-center space-x-3"  ,}
+          , _react2.default.createElement('button', {
+            onClick: importSheet,
+            className: "flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105"          ,}
+
+            , _react2.default.createElement(_lucidereact.FileUp, { className: "w-4 h-4" ,} )
+            , _react2.default.createElement('span', null, "Import")
+          )
+          , _react2.default.createElement('button', {
+            onClick: exportSheet,
+            className: "flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105"          ,}
+
+            , _react2.default.createElement(_lucidereact.FileDown, { className: "w-4 h-4" ,} )
+            , _react2.default.createElement('span', null, "Export")
+          )
+        )
+      )
+
+      , _react2.default.createElement('div', { className: "flex flex-1 overflow-hidden"  ,}
+        /* Left Sidebar - JSON Editor (1/4 width) */
+        , _react2.default.createElement('div', { className: "w-1/4 bg-black/30 backdrop-blur-md border-r border-purple-500/30 p-4 flex flex-col"       ,}
+          , _react2.default.createElement('div', { className: "flex items-center justify-between mb-4"   ,}
+            , _react2.default.createElement('h2', { className: "text-lg font-semibold text-purple-300"  ,}, "Sheet Music Editor"  )
+          )
+
+          /* AI Generation Section */
+          , _react2.default.createElement('div', { className: "mb-4 p-4 bg-black/40 rounded-lg border border-purple-500/30"     ,}
+            , _react2.default.createElement('h3', { className: "text-sm font-semibold text-purple-300 mb-3 flex items-center"     ,}
+              , _react2.default.createElement(_lucidereact.Sparkles, { className: "w-4 h-4 mr-2"  ,} ), "AI Music Generation"
+
+            )
+            , _react2.default.createElement('div', { className: "space-y-3",}
+              , _react2.default.createElement('textarea', {
+                value: aiPrompt,
+                onChange: (e) => setAiPrompt(e.target.value),
+                placeholder: "Describe the music you want... e.g., 'upbeat electronic dance track with bass and synth leads' or 'peaceful piano melody in C major'"                     ,
+                className: "w-full h-20 bg-black/50 border border-purple-500/30 rounded p-2 text-sm text-white resize-none focus:outline-none focus:border-purple-400 custom-scrollbar"            ,}
+              )
+              , _react2.default.createElement('button', {
+                onClick: generateSheetMusic,
+                disabled: isGenerating,
+                className: "w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 px-3 py-2 rounded transition-all duration-200 text-sm"                 ,}
+
+                , isGenerating ? (
+                  _react2.default.createElement(_react2.default.Fragment, null
+                    , _react2.default.createElement(_lucidereact.Loader, { className: "w-4 h-4 animate-spin"  ,} )
+                    , _react2.default.createElement('span', null, "Generating...")
+                  )
+                ) : (
+                  _react2.default.createElement(_react2.default.Fragment, null
+                    , _react2.default.createElement(_lucidereact.Sparkles, { className: "w-4 h-4" ,} )
+                    , _react2.default.createElement('span', null, "Generate Music" )
+                  )
+                )
+              )
+            )
+          )
+
+          /* Example Buttons - 2 per row */
+          , _react2.default.createElement('div', { className: "mb-4",}
+            , _react2.default.createElement('h3', { className: "text-sm font-semibold text-purple-300 mb-2"   ,}, "Quick Examples" )
+            , _react2.default.createElement('div', { className: "grid grid-cols-2 gap-2"  ,}
+              , _react2.default.createElement('button', { onClick: () => loadExample('simple'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "Simple"
+
+              )
+              , _react2.default.createElement('button', { onClick: () => loadExample('chord'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "Chords"
+
+              )
+              , _react2.default.createElement('button', { onClick: () => loadExample('beat'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "Beat"
+
+              )
+              , _react2.default.createElement('button', { onClick: () => loadExample('house'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "House"
+
+              )
+              , _react2.default.createElement('button', { onClick: () => loadExample('ambient'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "Ambient"
+
+              )
+              , _react2.default.createElement('button', { onClick: () => loadExample('techno'), className: "px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"      ,}, "Techno"
+
+              )
+            )
+          )
+
+          /* JSON Editor */
+          , _react2.default.createElement('div', { className: "flex-1 flex flex-col min-h-0"   ,}
+            , _react2.default.createElement('h3', { className: "text-sm font-semibold text-purple-300 mb-2"   ,}, "JSON Editor" )
+            , _react2.default.createElement('textarea', {
+              value: jsonSheet,
+              onChange: (e) => setJsonSheet(e.target.value),
+              className: "flex-1 bg-black/50 border border-purple-500/30 rounded-lg p-3 text-xs font-mono text-green-300 resize-none focus:outline-none focus:border-purple-400 custom-scrollbar"            ,
+              placeholder: "Enter your JSON sheet music here..."     ,}
+            )
+          )
+        )
+
+        /* Right Side (3/4 width) - Fixed flex layout */
+        , _react2.default.createElement('div', { className: "flex-1 flex flex-col min-h-0"   ,}
+          /* Top: Decks Area with fixed height calculation */
+          , _react2.default.createElement('div', { className: "flex-1 flex flex-col min-h-0"   , style: { maxHeight: 'calc(100vh - 16rem - 64px)' },}
+            /* Header */
+            , _react2.default.createElement('div', { className: "flex-shrink-0 p-4 border-b border-purple-500/20"   ,}
+              , _react2.default.createElement('div', { className: "flex items-center justify-between"  ,}
+                , _react2.default.createElement('h2', { className: "text-xl font-semibold text-purple-300"  ,}, "Decks & Visualization"  )
+
+                , _react2.default.createElement('div', { className: "flex items-center space-x-2"  ,}
+                  , _react2.default.createElement('button', {
+                    onClick: stopAllDecks,
+                    className: "flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-all duration-200 text-sm"          ,}
+
+                    , _react2.default.createElement(_lucidereact.Square, { className: "w-4 h-4" ,} )
+                    , _react2.default.createElement('span', null, "Stop All" )
+                  )
+                  , _react2.default.createElement('button', {
+                    onClick: startAllDecks,
+                    className: "flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg transition-all duration-200 text-sm"          ,}
+
+                    , _react2.default.createElement(_lucidereact.Play, { className: "w-4 h-4" ,} )
+                    , _react2.default.createElement('span', null, "Start All" )
+                  )
+                  , _react2.default.createElement('button', {
+                    onClick: resetAllControls,
+                    className: "flex items-center space-x-2 bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded-lg transition-all duration-200 text-sm"          ,}
+
+                    , _react2.default.createElement(_lucidereact.RotateCcw, { className: "w-4 h-4" ,} )
+                    , _react2.default.createElement('span', null, "Reset")
+                  )
+                  , _react2.default.createElement('button', {
+                    onClick: addDeck,
+                    className: "flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition-all duration-200 text-sm"          ,}
+
+                    , _react2.default.createElement(_lucidereact.Plus, { className: "w-4 h-4" ,} )
+                    , _react2.default.createElement('span', null, "Add Deck" )
+                  )
+                )
+              )
+            )
+
+            /* Scrollable Deck List */
+            , _react2.default.createElement('div', { className: "flex-1 overflow-y-auto custom-scrollbar px-4 py-3"    ,}
+              , _react2.default.createElement('div', { className: "space-y-2 pb-4" ,}
+                , decks.map(deck => (
+                  _react2.default.createElement('div', { key: deck.id, className: "bg-gradient-to-r from-black/60 via-black/40 to-black/60 backdrop-blur-md border border-purple-500/30 rounded-xl p-3 flex-shrink-0 hover:border-purple-400/50 transition-all duration-300 group"             ,}
+                    /* Deck Header */
+                    , _react2.default.createElement('div', { className: "flex items-center justify-between mb-2"   ,}
+                      , _react2.default.createElement('div', { className: "flex items-center space-x-3"  ,}
+                        , _react2.default.createElement('div', { className: `w-3 h-3 rounded-full ${deck.isPlaying ? 'bg-emerald-400 animate-pulse' : deck.music ? 'bg-blue-400' : 'bg-gray-500'}`,})
+                        , _react2.default.createElement('h3', { className: "text-base font-bold text-white"  ,}, deck.name)
+                        , deck.isPlaying && _react2.default.createElement(_lucidereact.Activity, { className: "w-4 h-4 text-emerald-400 animate-pulse"   ,} )
+                      )
+                      , _react2.default.createElement('button', {
+                        onClick: () => deleteDeck(deck.id),
+                        className: "text-red-400 hover:text-red-300 transition-colors p-1 rounded opacity-0 group-hover:opacity-100"      ,
+                        disabled: decks.length <= 1,}
+
+                        , _react2.default.createElement(_lucidereact.Trash2, { className: "w-4 h-4" ,} )
+                      )
+                    )
+
+                    , _react2.default.createElement('div', { className: "flex gap-4" ,}
+                      /* Left Section - Track Info */
+                      , _react2.default.createElement('div', { className: "flex-1 space-y-2" ,}
+                        /* Track Details */
+                        , _react2.default.createElement('div', { className: "flex justify-between text-xs"  ,}
+                          , _react2.default.createElement('div', { className: "flex items-center space-x-3"  ,}
+                            , _react2.default.createElement('span', { className: "text-gray-400",}, "Track:")
+                            , _react2.default.createElement('span', { className: "text-cyan-300 font-medium truncate max-w-32"   ,}
+                              , deck.music ? deck.music.title : 'No track loaded'
+                            )
+                          )
+                          , _react2.default.createElement('div', { className: "flex items-center space-x-4"  ,}
+                            , _react2.default.createElement('span', { className: "text-gray-400",}, "BPM: " , _react2.default.createElement('span', { className: "text-orange-300 font-bold" ,}, deck.music ? deck.music.tempo || 120 : '--'))
+                            , _react2.default.createElement('span', { className: "text-gray-400",}, "Key: " , _react2.default.createElement('span', { className: "text-purple-300 font-bold" ,}, deck.music ? deck.music.key || 'C' : '--'))
+                          )
+                        )
+
+                        /* Progress Bar with Time */
+                        , _react2.default.createElement('div', { className: "relative",}
+                          , _react2.default.createElement('div', { className: "w-full bg-gray-800 rounded-full h-1.5 overflow-hidden"    ,}
+                            , _react2.default.createElement('div', { 
+                              className: `h-full rounded-full transition-all duration-200 ${
+                                deck.isPlaying 
+                                  ? 'bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400' 
+                                  : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                              }`,
+                              style: { width: deck.totalDuration ? `${(deck.currentTime / deck.totalDuration) * 100}%` : '0%' },}
+)
+                          )
+                          , _react2.default.createElement('div', { className: "flex justify-between text-xs text-gray-400 mt-1"    ,}
+                            , _react2.default.createElement('span', { className: "font-mono",}, formatTime(deck.currentTime))
+                            , _react2.default.createElement('span', { className: "font-mono",}, formatTime(deck.totalDuration))
+                          )
+                        )
+
+                        /* Control Buttons */
+                        , _react2.default.createElement('div', { className: "flex items-center space-x-2"  ,}
+                          , _react2.default.createElement('button', {
+                            onClick: () => playPauseDeck(deck.id),
+                            className: `flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 text-sm font-medium ${
+                              deck.isPlaying 
+                                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                            }`,}
+
+                            , deck.isPlaying ? _react2.default.createElement(_lucidereact.Pause, { className: "w-4 h-4" ,} ) : _react2.default.createElement(_lucidereact.Play, { className: "w-4 h-4" ,} )
+                          )
+
+                          , _react2.default.createElement('button', {
+                            onClick: () => cueDeck(deck.id),
+                            className: "flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white transition-all duration-200"          ,}
+
+                            , _react2.default.createElement(_lucidereact.RotateCcw, { className: "w-3 h-3" ,} )
+                          )
+
+                          , _react2.default.createElement('button', {
+                            onClick: () => applySheetToDeck(deck.id),
+                            className: "flex items-center justify-center w-8 h-8 rounded-full bg-purple-500 hover:bg-purple-600 text-white transition-all duration-200"          ,}
+
+                            , _react2.default.createElement(_lucidereact.Music, { className: "w-3 h-3" ,} )
+                          )
+
+                          /* Mini Control Sliders */
+                          , _react2.default.createElement('div', { className: "flex items-center space-x-3 ml-4"   ,}
+                            /* Volume */
+                            , _react2.default.createElement('div', { className: "flex items-center space-x-1"  ,}
+                              , _react2.default.createElement(_lucidereact.Volume2, { className: "w-3 h-3 text-blue-400"  ,} )
+                              , _react2.default.createElement('input', {
+                                type: "range",
+                                min: "0",
+                                max: "100",
+                                value: deck.volume,
+                                onChange: (e) => updateDeckProperty(deck.id, 'volume', parseInt(e.target.value)),
+                                className: "w-12 h-1 accent-blue-400"  ,}
+                              )
+                              , _react2.default.createElement('span', { className: "text-xs text-blue-300 w-6 text-center"   ,}, deck.volume)
+                            )
+
+                            /* Gain */
+                            , _react2.default.createElement('div', { className: "flex items-center space-x-1"  ,}
+                              , _react2.default.createElement(_lucidereact.Zap, { className: "w-3 h-3 text-orange-400"  ,} )
+                              , _react2.default.createElement('input', {
+                                type: "range",
+                                min: "0",
+                                max: "150",
+                                value: deck.gain,
+                                onChange: (e) => updateDeckProperty(deck.id, 'gain', parseInt(e.target.value)),
+                                className: "w-12 h-1 accent-orange-400"  ,}
+                              )
+                              , _react2.default.createElement('span', { className: "text-xs text-orange-300 w-6 text-center"   ,}, deck.gain)
+                            )
+
+                            /* Spin */
+                            , _react2.default.createElement('div', { className: "flex items-center space-x-1"  ,}
+                              , _react2.default.createElement(_lucidereact.RotateCw, { className: "w-3 h-3 text-emerald-400"  ,} )
+                              , _react2.default.createElement('input', {
+                                type: "range",
+                                min: "-100",
+                                max: "100",
+                                value: deck.spin,
+                                onChange: (e) => updateDeckProperty(deck.id, 'spin', parseInt(e.target.value)),
+                                className: "w-12 h-1 accent-emerald-400"  ,}
+                              )
+                              , _react2.default.createElement('span', { className: "text-xs text-emerald-300 w-8 text-center"   ,}, deck.spin > 0 ? '+' : '', deck.spin)
+                            )
+                          )
+                        )
+                      )
+
+                      /* Right Section - Waveform Visualization */
+                      , _react2.default.createElement('div', { className: "w-24 h-12 bg-black/60 rounded-lg p-1 flex items-end justify-center gap-px border border-gray-700/50"          ,}
+                        , generateWaveform(deck)
+                      )
+                    )
+                  )
+                ))
+              )
+            )
+
+            /* Master Crossfader */
+            , _react2.default.createElement('div', { className: "flex-shrink-0 p-4 border-t border-purple-500/20"   ,}
+              , _react2.default.createElement('div', { className: "bg-gradient-to-r from-black/60 to-black/40 backdrop-blur-md border border-purple-500/30 rounded-xl p-3"       ,}
+                , _react2.default.createElement('div', { className: "flex items-center justify-between mb-2"   ,}
+                  , _react2.default.createElement('h3', { className: "text-sm font-bold text-white"  ,}, "Master Crossfader" )
+                  , _react2.default.createElement('span', { className: "text-xs text-gray-400" ,}, "Use A/D keys | X to reset all"       )
+                )
+                , _react2.default.createElement('div', { className: "flex items-center space-x-4"  ,}
+                  , _react2.default.createElement('span', { className: "text-xs text-gray-400 font-mono w-4"   ,}, "L")
+                  , _react2.default.createElement('div', { className: "flex-1 relative" ,}
+                    , _react2.default.createElement('input', {
+                      type: "range",
+                      min: "0",
+                      max: "100",
+                      value: masterCrossfader,
+                      onChange: (e) => setMasterCrossfader(parseInt(e.target.value)),
+                      className: "w-full h-2 accent-blue-500 bg-gray-700 rounded-full"    ,}
+                    )
+                    , _react2.default.createElement('div', { className: "flex justify-center mt-1"  ,}
+                      , _react2.default.createElement('span', { className: "text-xs text-blue-300 font-bold"  ,}, masterCrossfader)
+                    )
+                  )
+                  , _react2.default.createElement('span', { className: "text-xs text-gray-400 font-mono w-4 text-right"    ,}, "R")
+                )
+              )
+            )
+          )
+
+          /* Bottom: Effects Area - Fixed Height */
+          , _react2.default.createElement('div', { className: "flex-shrink-0 h-64 bg-black/30 backdrop-blur-md border-t border-purple-500/30 p-4"      ,}
+            , _react2.default.createElement('div', { className: "flex items-center justify-between mb-3"   ,}
+              , _react2.default.createElement('h3', { className: "text-lg font-semibold text-purple-300"  ,}, "Effects & Quick Sounds"   )
+            )
+
+            , _react2.default.createElement('div', { className: "grid grid-cols-4 gap-4 h-full"   ,}
+              /* Audio Effects */
+              , _react2.default.createElement('div', { className: "space-y-2",}
+                , _react2.default.createElement('h4', { className: "text-sm font-semibold text-gray-300 border-b border-gray-600 pb-1"     ,}, "Audio Effects" )
+                , _react2.default.createElement('div', { className: "space-y-1",}
+                  , [
+                    { name: 'reverb', key: 'Q', icon: '🌊' },
+                    { name: 'delay', key: 'W', icon: '⏰' },
+                    { name: 'filter', key: 'E', icon: '🎛️' },
+                    { name: 'distortion', key: 'R', icon: '🔥' }
+                  ].map(effect => (
+                    _react2.default.createElement('button', {
+                      key: effect.name,
+                      onClick: () => toggleEffect(effect.name),
+                      className: `w-full px-2 py-1.5 rounded text-xs font-medium transition-all duration-200 flex items-center justify-between ${
+                        activeEffects[effect.name] 
+                          ? 'bg-green-600 hover:bg-green-700 shadow-md shadow-green-500/30' 
+                          : 'bg-gray-600 hover:bg-gray-700'
+                      }`,}
+
+                      , _react2.default.createElement('span', null, effect.icon, " " , effect.name.charAt(0).toUpperCase() + effect.name.slice(1))
+                      , _react2.default.createElement('span', { className: "text-xs opacity-70" ,}, effect.key)
+                    )
+                  ))
+                )
+              )
+
+              /* Waveforms */
+              , _react2.default.createElement('div', { className: "space-y-2",}
+                , _react2.default.createElement('h4', { className: "text-sm font-semibold text-gray-300 border-b border-gray-600 pb-1"     ,}, "Waveforms")
+                , _react2.default.createElement('div', { className: "space-y-1",}
+                  , [
+                    { name: 'sine', key: '1', icon: '〰️' },
+                    { name: 'square', key: '2', icon: '⬜' },
+                    { name: 'sawtooth', key: '3', icon: '📐' },
+                    { name: 'triangle', key: '4', icon: '🔺' }
+                  ].map(wave => (
+                    _react2.default.createElement('button', {
+                      key: wave.name,
+                      onClick: () => setCurrentWaveform(wave.name),
+                      className: `w-full px-2 py-1.5 rounded text-xs font-medium transition-all duration-200 flex items-center justify-between ${
+                        currentWaveform === wave.name
+                          ? 'bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/30'
+                          : 'bg-gray-600 hover:bg-gray-700'
+                      }`,}
+
+                      , _react2.default.createElement('span', null, wave.icon, " " , wave.name.charAt(0).toUpperCase() + wave.name.slice(1))
+                      , _react2.default.createElement('span', { className: "text-xs opacity-70" ,}, wave.key)
+                    )
+                  ))
+                )
+              )
+
+              /* Quick Sounds */
+              , _react2.default.createElement('div', { className: "space-y-2",}
+                , _react2.default.createElement('h4', { className: "text-sm font-semibold text-gray-300 border-b border-gray-600 pb-1"     ,}, "Quick Sounds" )
+                , _react2.default.createElement('div', { className: "space-y-1",}
+                  , [
+                    { name: 'bass', key: '5', icon: '🔊' },
+                    { name: 'lead', key: '6', icon: '🎸' },
+                    { name: 'chord', key: '7', icon: '🎹' },
+                    { name: 'drum', key: '8', icon: '🥁' }
+                  ].map(sound => (
+                    _react2.default.createElement('button', {
+                      key: sound.name,
+                      onClick: () => playQuickSound(sound.name),
+                      className: "w-full px-2 py-1.5 bg-orange-600 hover:bg-orange-700 rounded text-xs font-medium transition-all duration-200 flex items-center justify-between shadow-md hover:shadow-orange-500/30"              ,}
+
+                      , _react2.default.createElement('span', null, sound.icon, " " , sound.name.charAt(0).toUpperCase() + sound.name.slice(1))
+                      , _react2.default.createElement('span', { className: "text-xs opacity-70" ,}, sound.key)
+                    )
+                  ))
+                )
+              )
+
+              /* Controls Info */
+              , _react2.default.createElement('div', { className: "space-y-2",}
+                , _react2.default.createElement('h4', { className: "text-sm font-semibold text-gray-300 border-b border-gray-600 pb-1"     ,}, "Keyboard Shortcuts" )
+                , _react2.default.createElement('div', { className: "text-xs text-gray-400 space-y-1"  ,}
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Stop All:" )
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "SPACE")
+                  )
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Crossfader:")
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "A / D"  )
+                  )
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Reset All:" )
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "X")
+                  )
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Effects:")
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "Q-R")
+                  )
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Waveforms:")
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "1-4")
+                  )
+                  , _react2.default.createElement('div', { className: "flex justify-between" ,}
+                    , _react2.default.createElement('span', null, "Sounds:")
+                    , _react2.default.createElement('span', { className: "font-mono bg-gray-700 px-1 rounded"   ,}, "5-8")
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  );
+};
+
+exports. default = DJMixerPro;
+</script></head>
+  <body>
+  
+
+<div id="preview-app"></div></body></html>
